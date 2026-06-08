@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICS-Watchdog Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --accent-blue: #3b82f6;
+            --alert-critical: #ef4444;
+            --alert-high: #f97316;
+            --alert-medium: #eab308;
+            --alert-low: #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--accent-blue);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-box {
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            height: 400px;
+        }
+
+        .alerts-table-container {
+            background-color: var(--bg-card);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background-color: #2a2a2a;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        tr:hover {
+            background-color: #252525;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .severity-CRITICAL { background-color: rgba(239, 68, 68, 0.2); color: var(--alert-critical); border: 1px solid var(--alert-critical); }
+        .severity-HIGH { background-color: rgba(249, 115, 22, 0.2); color: var(--alert-high); border: 1px solid var(--alert-high); }
+        .severity-MEDIUM { background-color: rgba(234, 179, 8, 0.2); color: var(--alert-medium); border: 1px solid var(--alert-medium); }
+        .severity-LOW { background-color: rgba(59, 130, 246, 0.2); color: var(--alert-low); border: 1px solid var(--alert-low); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>ICS-Watchdog Security Report</h1>
+        <p style="color: var(--text-muted);">Generated Passive Monitoring Report</p>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-title">Duration (s)</div>
+            <div class="card-value">{{ report.summary.run_duration_seconds | round(2) }}</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Total Packets</div>
+            <div class="card-value">{{ report.summary.total_packets_captured }}</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Modbus Packets</div>
+            <div class="card-value">{{ report.summary.modbus_packets }}</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Total Alerts</div>
+            <div class="card-value" style="color: var(--alert-critical);">{{ report.summary.total_alerts }}</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-container">
+        <div class="chart-box">
+            <canvas id="severityChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="fcChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Alert Table -->
+    <div class="alerts-table-container">
+        <h2>Detected Alerts</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Severity</th>
+                    <th>Rule</th>
+                    <th>Src IP</th>
+                    <th>Dst IP</th>
+                    <th>MITRE ID</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in report.alerts | reverse %}
+                <tr>
+                    <td style="font-family: monospace; font-size: 0.9em; color: var(--text-muted);">{{ alert.timestamp[:19] }}</td>
+                    <td><span class="badge severity-{{ alert.severity }}">{{ alert.severity }}</span></td>
+                    <td><strong>{{ alert.rule_id }}</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">{{ alert.rule_name }}</span></td>
+                    <td style="font-family: monospace;">{{ alert.src_ip }}</td>
+                    <td style="font-family: monospace;">{{ alert.dst_ip }}</td>
+                    <td>{{ alert.mitre_technique }}</td>
+                    <td style="font-size: 0.9em;">{{ alert.explanation }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Prepare Data for Severity Chart
+    const severityData = {{ report.summary.alerts_by_severity | tojson }};
+    const severityCtx = document.getElementById('severityChart').getContext('2d');
+    
+    // Ensure all standard severities are represented even if 0
+    const labels = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    const data = labels.map(l => severityData[l] || 0);
+    const colors = ['#ef4444', '#f97316', '#eab308', '#3b82f6'];
+
+    new Chart(severityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#fff' } },
+                title: { display: true, text: 'Alerts by Severity', color: '#fff', font: { size: 16 } }
+            }
+        }
+    });
+
+    // Prepare Data for Function Code Chart
+    const fcDataRaw = {{ report.network_stats.function_codes | tojson }};
+    // Filter out internal zero counts if needed, or map common ones
+    const fcLabels = Object.keys(fcDataRaw).map(fc => `FC ${fc.padStart(2, '0')}`);
+    const fcCounts = Object.values(fcDataRaw);
+    
+    const fcCtx = document.getElementById('fcChart').getContext('2d');
+    new Chart(fcCtx, {
+        type: 'bar',
+        data: {
+            labels: fcLabels,
+            datasets: [{
+                label: 'Packet Count',
+                data: fcCounts,
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#b3b3b3' } },
+                x: { grid: { display: false }, ticks: { color: '#b3b3b3' } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'Modbus Function Codes Observed', color: '#fff', font: { size: 16 } }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

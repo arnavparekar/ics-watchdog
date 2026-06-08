@@ -52,6 +52,21 @@ def generate_json_report():
         json.dump(report, f, indent=2)
         
     print(f"JSON report generated at {REPORT_JSON}")
+    
+    # Generate HTML report
+    try:
+        from jinja2 import Environment, FileSystemLoader
+        env = Environment(loader=FileSystemLoader("/app/templates"))
+        template = env.get_template("report.html.j2")
+        html_content = template.render(report=report)
+        
+        report_html = os.path.join(OUTPUT_DIR, "watchdog_report.html")
+        with open(report_html, "w") as f:
+            f.write(html_content)
+            
+        print(f"HTML report generated at {report_html}")
+    except Exception as e:
+        print(f"Failed to generate HTML report: {e}")
 
 if __name__ == "__main__":
     generate_json_report()

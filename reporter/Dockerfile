@@ -4,4 +4,5 @@ WORKDIR /app
 
 COPY . .
 
+RUN pip install --no-cache-dir jinja2
 CMD ["python3", "report.py"]
