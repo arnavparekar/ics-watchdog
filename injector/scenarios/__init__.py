@@ -1,1 +1,1 @@
-# ICS-Watchdog Injector Scenarios
+# Init file for scenarios module
