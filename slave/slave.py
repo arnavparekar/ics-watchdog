@@ -1,16 +1,12 @@
-#!/usr/bin/env python3
 """
 ICS-Watchdog — Modbus Slave (Field Device Simulator)
-
 Simulates a PLC field device that responds to Modbus/TCP requests.
 Each instance is parameterised by the SLAVE_ID environment variable
 (1, 2, or 3) and exposes:
-
   - Holding registers 0-9  (FC03 read / FC06 write) — sensor values
   - Input registers 0-9    (FC04 read-only)          — diagnostic data
   - Coils 0-9              (FC01 read / FC05 write)   — actuator states
   - Discrete inputs 0-9    (FC02 read-only)           — binary sensors
-
 A background thread drifts sensor values every few seconds to simulate
 realistic, changing process data.
 """
@@ -28,16 +24,13 @@ from pymodbus.datastore import (
     ModbusServerContext,
 )
 
-# ---------------------------------------------------------------------------
+
 # Configuration
-# ---------------------------------------------------------------------------
 SLAVE_ID = int(os.environ.get("SLAVE_ID", 1))
 MODBUS_PORT = 502
 SENSOR_UPDATE_INTERVAL = 3  # seconds between simulated sensor drift
 
-# ---------------------------------------------------------------------------
 # Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format=f"%(asctime)s [SLAVE-{SLAVE_ID}] %(levelname)s  %(message)s",
@@ -45,9 +38,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(f"modbus-slave-{SLAVE_ID}")
 
-# ---------------------------------------------------------------------------
 # Sensor profiles — each slave simulates a different plant area
-# ---------------------------------------------------------------------------
 SENSOR_PROFILES = {
     1: {
         "name": "Reactor Unit",
@@ -69,10 +60,7 @@ SENSOR_PROFILES = {
     },
 }
 
-# ---------------------------------------------------------------------------
 # Datastore initialisation
-# ---------------------------------------------------------------------------
-
 def _build_initial_registers() -> list[int]:
     """Build 100 holding register values.  Addresses 0-9 contain
     meaningful sensor readings; 10-99 are zeroed (reserved)."""
@@ -104,10 +92,7 @@ def create_datastore() -> ModbusServerContext:
     return ModbusServerContext(devices=store, single=True)
 
 
-# ---------------------------------------------------------------------------
 # Background sensor drift
-# ---------------------------------------------------------------------------
-
 def sensor_update_loop(context: ModbusServerContext):
     """Periodically mutate holding register values to simulate real
     process dynamics — temperature drift, pressure fluctuations, etc."""
@@ -128,10 +113,6 @@ def sensor_update_loop(context: ModbusServerContext):
         except Exception as exc:
             logger.error("Sensor update error: %s", exc)
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     profile = SENSOR_PROFILES.get(SLAVE_ID, SENSOR_PROFILES[1])

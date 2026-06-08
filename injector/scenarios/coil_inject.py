@@ -1,15 +1,12 @@
 """
 Coil Write Injection Attack Scenario
-
 Sends rapid FC05 (Write Single Coil) commands to slave-1 and mirrors
 them to the watchdog for passive detection.
-
 Triggers rules:
-- R-002: Unauthorised Write to Coils (because source is not the master)
-- R-006: New Source IP (injector IP not in whitelist)
-- R-008: Excessive Write Rate (> 20 writes in 10s)
+R-002: Unauthorised Write to Coils (because source is not the master)
+R-006: New Source IP (injector IP not in whitelist)
+R-008: Excessive Write Rate (> 20 writes in 10s)
 """
-
 import time
 import logging
 import struct
@@ -45,7 +42,6 @@ def run():
         except Exception as exc:
             logger.debug("Write failed: %s", exc)
 
-        # Mirror to watchdog
         _mirror_to_watchdog(5, 1, struct.pack('>HH', coil_addr, 0xFF00))
 
         # Fast enough to trigger R-008 (>20 writes in 10s)

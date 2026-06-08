@@ -1,6 +1,5 @@
 """
 ICS-Watchdog — Detection Rules Engine
-
 Evaluates parsed Modbus packets against stateful security rules.
 Matches trigger alerts mapped to MITRE ATT&CK for ICS.
 """
@@ -10,10 +9,8 @@ from collections import defaultdict
 from typing import Optional
 from alert import Alert
 
-# ---------------------------------------------------------------------------
-# Rule Engine
-# ---------------------------------------------------------------------------
 
+# Rule Engine
 class RuleEngine:
     """Stateful engine that evaluates packets against active rules."""
 
@@ -83,10 +80,6 @@ class RuleEngine:
             alerts.append(alert)
 
         return alerts
-
-    # -----------------------------------------------------------------------
-    # Rules
-    # -----------------------------------------------------------------------
 
     def _rule_001_function_code_scan(self, pkt: dict) -> Optional[Alert]:
         """

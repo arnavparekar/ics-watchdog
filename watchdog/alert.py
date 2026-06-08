@@ -1,6 +1,5 @@
 """
 ICS-Watchdog — Alert Schema and Writer
-
 Defines the structure of a detection alert according to the
 SRS JSON schema and provides a writer to append alerts to a
 shared JSON Lines file.
@@ -41,7 +40,6 @@ class AlertWriter:
     def __init__(self, filepath: str = ALERTS_FILE):
         self.filepath = filepath
         os.makedirs(os.path.dirname(self.filepath), exist_ok=True)
-        # Ensure file exists
         open(self.filepath, "a").close()
 
     def write(self, alert: Alert):

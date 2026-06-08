@@ -1,16 +1,14 @@
 """
 Reconnaissance Scan Attack Scenario
-
 Sends multiple function codes and out-of-bounds register reads 
 to probe the Modbus/TCP network. Traffic is sent to each slave 
 via its real IP and simultaneously mirrored to the watchdog 
 for passive detection.
-
 Triggers rules:
-- R-001: Modbus Function Code Scan (>10 distinct FCs from same source in 30s)
-- R-004: Sequential Scan Probe (scanning all 3 slaves rapidly)
-- R-005: Out-of-Range Register Access (reading registers > 9)
-- R-006: New Source IP (injector IP not in whitelist)
+R-001: Modbus Function Code Scan (>10 distinct FCs from same source in 30s)
+R-004: Sequential Scan Probe (scanning all 3 slaves rapidly)
+R-005: Out-of-Range Register Access (reading registers > 9)
+R-006: New Source IP (injector IP not in whitelist)
 """
 
 import time

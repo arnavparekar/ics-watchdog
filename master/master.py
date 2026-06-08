@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 """
 ICS-Watchdog — Modbus Master (PLC Simulator)
-
 Simulates a PLC master controller that polls 3 slave field devices
 every 2 seconds, reading holding registers 0-9 (simulated sensor data).
 Occasionally writes to registers via FC06 to simulate normal control
@@ -16,9 +14,7 @@ import random
 
 from pymodbus.client import ModbusTcpClient
 
-# ---------------------------------------------------------------------------
 # Configuration
-# ---------------------------------------------------------------------------
 SLAVE_IPS = ["192.168.100.21", "192.168.100.22", "192.168.100.23"]
 MODBUS_PORT = 502
 POLL_INTERVAL = 2       # seconds between polling cycles
@@ -27,9 +23,7 @@ REGISTER_COUNT = 10     # read holding registers 0-9
 WRITE_EVERY_N = 10      # write a register every Nth poll cycle
 STARTUP_DELAY = 5       # seconds to wait for slaves to initialise
 
-# ---------------------------------------------------------------------------
 # Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [MASTER] %(levelname)s  %(message)s",
@@ -37,11 +31,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("modbus-master")
 
-# ---------------------------------------------------------------------------
 # Graceful shutdown
-# ---------------------------------------------------------------------------
 running = True
-
 
 def _shutdown(sig, frame):
     global running
@@ -52,10 +43,7 @@ def _shutdown(sig, frame):
 signal.signal(signal.SIGTERM, _shutdown)
 signal.signal(signal.SIGINT, _shutdown)
 
-# ---------------------------------------------------------------------------
 # Modbus helpers
-# ---------------------------------------------------------------------------
-
 def poll_slave(client: ModbusTcpClient, slave_ip: str) -> bool:
     """Read holding registers 0-9 from a slave (FC03)."""
     try:
@@ -91,10 +79,7 @@ def write_register(
         logger.error("WRITE %s  error: %s", slave_ip, exc)
         return False
 
-# ---------------------------------------------------------------------------
 # Main loop
-# ---------------------------------------------------------------------------
-
 def main():
     logger.info("=" * 60)
     logger.info("Modbus Master starting")
@@ -120,8 +105,6 @@ def main():
         for ip, client in clients.items():
             if not running:
                 break
-
-            # Ensure connection is alive
             if not client.connected:
                 try:
                     client.connect()
@@ -129,11 +112,7 @@ def main():
                 except Exception as exc:
                     logger.error("Connection to %s failed: %s", ip, exc)
                     continue
-
-            # --- Normal read cycle (FC03) ---
             poll_slave(client, ip)
-
-            # --- Periodic write cycle (FC06) ---
             if poll_count > 0 and poll_count % WRITE_EVERY_N == 0:
                 reg_addr = random.randint(0, 9)
                 reg_value = random.randint(100, 999)
@@ -141,8 +120,6 @@ def main():
 
         poll_count += 1
         time.sleep(POLL_INTERVAL)
-
-    # Clean shutdown
     for ip, client in clients.items():
         try:
             client.close()
@@ -151,7 +128,6 @@ def main():
         logger.info("Connection to %s closed", ip)
 
     logger.info("Master shutdown complete")
-
 
 if __name__ == "__main__":
     main()

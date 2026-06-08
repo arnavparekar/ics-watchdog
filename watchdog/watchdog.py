@@ -1,12 +1,9 @@
-#!/usr/bin/env python3
 """
 ICS-Watchdog — Passive Modbus/TCP Network Sniffer
-
 Captures all Modbus/TCP traffic on the Docker bridge network using
 promiscuous mode.  Parses MBAP (Modbus Application Protocol) headers,
 logs packet metadata to stdout, and writes running statistics to a
 shared volume for the reporter container.
-
 No detection rules in this module — pure capture and parse.
 Rules are added by the rule engine (rules.py) in later commits.
 """
@@ -27,9 +24,8 @@ from scapy.all import sniff, TCP, IP, Raw, conf
 from alert import AlertWriter
 from rules import RuleEngine
 
-# ---------------------------------------------------------------------------
+
 # Configuration
-# ---------------------------------------------------------------------------
 MODBUS_PORT = 502
 CAPTURE_IFACE = os.environ.get("CAPTURE_IFACE", "eth0")
 OUTPUT_DIR = "/app/output"
@@ -37,9 +33,7 @@ STATS_FILE = os.path.join(OUTPUT_DIR, "packet_stats.json")
 ALERTS_FILE = os.path.join(OUTPUT_DIR, "alerts.jsonl")
 STATS_FLUSH_INTERVAL = 5  # seconds between stats file writes
 
-# ---------------------------------------------------------------------------
 # Modbus function code reference
-# ---------------------------------------------------------------------------
 FC_NAMES = {
     1:  "Read Coils",
     2:  "Read Discrete Inputs",
@@ -58,9 +52,7 @@ FC_NAMES = {
 
 WRITE_FUNCTION_CODES = {5, 6, 15, 16}
 
-# ---------------------------------------------------------------------------
 # Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [WATCHDOG] %(levelname)s  %(message)s",
@@ -68,9 +60,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ics-watchdog")
 
-# ---------------------------------------------------------------------------
+
 # Graceful shutdown
-# ---------------------------------------------------------------------------
 running = True
 
 
@@ -84,10 +75,8 @@ signal.signal(signal.SIGTERM, _shutdown)
 signal.signal(signal.SIGINT, _shutdown)
 
 
-# ---------------------------------------------------------------------------
-# Modbus/TCP parser
-# ---------------------------------------------------------------------------
 
+# Modbus/TCP parser
 def parse_mbap(payload: bytes) -> dict | None:
     """Parse a Modbus/TCP MBAP header + PDU from a raw TCP payload.
 
@@ -168,10 +157,8 @@ def _extract_register_info(parsed: dict, fc: int, data: bytes):
             )
 
 
-# ---------------------------------------------------------------------------
-# Packet capture engine
-# ---------------------------------------------------------------------------
 
+# Packet capture engine
 class PacketCapture:
     """Stateful packet capture engine that sniffs Modbus/TCP traffic,
     parses headers, logs to stdout, and maintains running statistics."""
@@ -298,10 +285,7 @@ class PacketCapture:
             logger.error("Failed to write stats: %s", exc)
 
 
-# ---------------------------------------------------------------------------
 # Stats flusher thread
-# ---------------------------------------------------------------------------
-
 def _stats_flusher(capture: PacketCapture):
     """Background thread that periodically writes capture stats to disk."""
     while running:
@@ -314,10 +298,6 @@ def _stats_flusher(capture: PacketCapture):
                 capture.total_packets,
             )
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     logger.info("=" * 60)

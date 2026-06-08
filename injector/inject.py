@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 """
 ICS-Watchdog — Attack Injection CLI
-
 Executes simulated OT attacks against the Modbus/TCP network.
 Used to trigger detection rules in the watchdog container.
 """

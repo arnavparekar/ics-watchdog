@@ -1,13 +1,11 @@
 """
 Replay Attack Scenario
-
 Crafts a raw Modbus/TCP FC06 (Write Single Register) packet using Scapy
 and retransmits the exact same payload multiple times in rapid succession
 to the watchdog for passive detection.
-
 Triggers rules:
-- R-007: Replay Attack (Identical payload sent > 3 times in 5s)
-- R-008: Excessive Write Rate (> 20 writes in 10s)
+R-007: Replay Attack (Identical payload sent > 3 times in 5s)
+R-008: Excessive Write Rate (> 20 writes in 10s)
 """
 
 import time
@@ -21,7 +19,6 @@ WATCHDOG_IP = "192.168.100.100"
 
 def run():
     logger.info("Starting Replay Attack (T0856)")
-
     # Craft a synthetic Modbus FC06 (Write Single Register) packet
     # MBAP: TransID=1, Proto=0, Len=6, UnitID=1, FC=6
     # PDU:  Addr=5, Val=999
@@ -29,8 +26,6 @@ def run():
     pdu = struct.pack('>HH', 5, 999)
     payload = mbap + pdu
 
-    # We use scapy to bypass pymodbus transaction ID auto-incrementing,
-    # ensuring the payload is truly identical byte-for-byte.
     logger.info("  -> Replaying identical FC06 packet 10 times in 3 seconds...")
 
     for _ in range(10):
