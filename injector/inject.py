@@ -10,7 +10,7 @@ import argparse
 import logging
 import sys
 
-from scenarios import recon
+from scenarios import recon, coil_inject, replay
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +25,7 @@ def main():
         "--attack",
         type=str,
         required=True,
-        choices=["recon"],
+        choices=["recon", "coil-inject", "replay"],
         help="The attack scenario to execute."
     )
     
@@ -33,6 +33,10 @@ def main():
 
     if args.attack == "recon":
         recon.run()
+    elif args.attack == "coil-inject":
+        coil_inject.run()
+    elif args.attack == "replay":
+        replay.run()
     else:
         logger.error("Unknown attack type.")
         sys.exit(1)
