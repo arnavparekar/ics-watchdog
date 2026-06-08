@@ -38,39 +38,30 @@ A legitimate Modbus Master (HMI/SCADA) sends `Read Holding Registers (FC03)` req
 
 The project ships as a complete, self-contained Docker Compose environment. It includes not just the monitoring engine, but an entire **simulated ICS honeypot** and an **automated attack injector** so the detection rules can be exercised and verified without needing real hardware.
 
-```
-                    ┌─────────────────────────────────────────┐
-                    │   Docker bridge: ics-net (192.168.100.0/24)   │
-                    │                                               │
-  ┌─────────────┐   │   ┌──────────┐   FC03 polls   ┌──────────┐   │
-  │  ics-master │◄──┼──►│ ics-slave│◄──────────────►│ics-slave │   │
-  │ .100.10     │   │   │   -1     │                │   -2     │   │
-  │ (SCADA/HMI) │   │   │ .100.21  │                │ .100.22  │   │
-  └─────────────┘   │   └──────────┘                └──────────┘   │
-                    │                  ┌──────────┐                 │
-                    │                  │ics-slave │                 │
-                    │                  │   -3     │                 │
-                    │                  │ .100.23  │                 │
-                    │                  └──────────┘                 │
-                    │                                               │
-  ┌─────────────┐   │              ┌──────────────┐                 │
-  │ics-injector │───┼──(attacks)──►│ ics-watchdog │                 │
-  │  .100.50    │   │              │  .100.100    │                 │
-  │ (CLI tool)  │   │              │ (scapy sniff)│                 │
-  └─────────────┘   │              └──────┬───────┘                 │
-                    │                     │ writes                  │
-                    └─────────────────────┼─────────────────────────┘
-                                          │
-                                   [Docker Volume]
-                                   alerts.jsonl
-                                   packet_stats.json
-                                          │
-                                   ┌──────▼───────┐
-                                   │ ics-reporter │
-                                   │  (on-demand) │
-                                   └──────────────┘
-                                   watchdog_report.json
-                                   watchdog_report.html
+```mermaid
+graph TD
+    subgraph "Docker Network (ics-net: 192.168.100.0/24)"
+        M[Modbus Master<br/>192.168.100.10]
+        S1[Modbus Slave 1<br/>192.168.100.21]
+        S2[Modbus Slave 2<br/>192.168.100.22]
+        S3[Modbus Slave 3<br/>192.168.100.23]
+        
+        I[Attack Injector<br/>192.168.100.50]
+        W[ICS-Watchdog<br/>192.168.100.100]
+        R[Report Generator<br/>192.168.100.200]
+    end
+
+    M <-->|Modbus/TCP Polling| S1
+    M <-->|Modbus/TCP Polling| S2
+    M <-->|Modbus/TCP Polling| S3
+    
+    I -.->|Malicious Traffic| W
+    I -.->|Probing| S1
+    
+    W == "Passive Sniffing (Scapy)" ==> W
+    W -->|Writes JSON Logs| V[(Docker Volume)]
+    V -->|Reads JSON Logs| R
+    R -->|Generates| HTML[HTML Dashboard]
 ```
 
 ### Containers
