@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  modbus-master:
+    build: ./master
+    container_name: ics-master
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.10
+    depends_on:
+      - modbus-slave-1
+      - modbus-slave-2
+      - modbus-slave-3
+    restart: unless-stopped
+
+  modbus-slave-1:
+    build: ./slave
+    container_name: ics-slave-1
+    environment:
+      - SLAVE_ID=1
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.21
+    restart: unless-stopped
+
+  modbus-slave-2:
+    build: ./slave
+    container_name: ics-slave-2
+    environment:
+      - SLAVE_ID=2
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.22
+    restart: unless-stopped
+
+  modbus-slave-3:
+    build: ./slave
+    container_name: ics-slave-3
+    environment:
+      - SLAVE_ID=3
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.23
+    restart: unless-stopped
+
+  traffic-injector:
+    build: ./injector
+    container_name: ics-injector
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.50
+    depends_on:
+      - modbus-master
+    restart: unless-stopped
+
+  ics-watchdog:
+    build: ./watchdog
+    container_name: ics-watchdog
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.100
+    volumes:
+      - watchdog-data:/app/output
+    depends_on:
+      - modbus-master
+    restart: unless-stopped
+
+  report-gen:
+    build: ./reporter
+    container_name: ics-reporter
+    volumes:
+      - watchdog-data:/app/output
+    networks:
+      ics-net:
+        ipv4_address: 192.168.100.200
+    depends_on:
+      - ics-watchdog
+    restart: unless-stopped
+
+networks:
+  ics-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+
+volumes:
+  watchdog-data:
