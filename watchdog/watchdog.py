@@ -24,6 +24,9 @@ from collections import defaultdict
 
 from scapy.all import sniff, TCP, IP, Raw, conf
 
+from alert import AlertWriter
+from rules import RuleEngine
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -183,6 +186,9 @@ class PacketCapture:
         self.unique_pairs: set[tuple[str, str]] = set()
         self.packets: list[dict] = []  # recent parsed packets for rule engine
 
+        self.engine = RuleEngine()
+        self.alert_writer = AlertWriter()
+
         # Ensure output directory exists
         os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -234,6 +240,13 @@ class PacketCapture:
         self.packets.append(parsed)
         if len(self.packets) > 1000:
             self.packets.pop(0)
+
+        # Run detection engine
+        if parsed["direction"] == "REQ":  # Only evaluate requests
+            alerts = self.engine.evaluate(parsed)
+            for alert in alerts:
+                logger.warning("🚨 ALERT FIRED: [%s] %s (src: %s)", alert.rule_id, alert.rule_name, alert.src_ip)
+                self.alert_writer.write(alert)
 
         # Log to stdout
         reg_info = ""

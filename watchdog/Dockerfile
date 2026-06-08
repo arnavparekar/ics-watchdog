@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir scapy
+RUN pip install --no-cache-dir scapy python-dateutil
 
 COPY . .
 
