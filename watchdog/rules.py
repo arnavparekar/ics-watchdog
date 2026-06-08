@@ -184,14 +184,17 @@ class RuleEngine:
 
     def _rule_004_broadcast_probe(self, pkt: dict) -> Optional[Alert]:
         """
-        R-004: Broadcast Probe
+        R-004: Broadcast Probe / Sequential Scan
         MITRE: T0846 — Remote System Discovery
-        Logic: Modbus packet to broadcast OR sequential scan of .21/.22/.23 in 5s.
+        Logic: Modbus packet to broadcast OR sequential scan of all 3 slaves
+               (detected via distinct unit_ids 1,2,3 or dst IPs .21/.22/.23) within 5s.
         """
         src = pkt["src_ip"]
         dst = pkt["dst_ip"]
         now = pkt["epoch"]
+        unit_id = pkt.get("unit_id", 0)
         
+        # Check for broadcast
         if dst.endswith(".255"):
             return Alert(
                 timestamp=pkt["timestamp"],
@@ -207,11 +210,19 @@ class RuleEngine:
                 raw_packet_count=1
             )
             
-        self.dst_history[src].append((dst, now))
-        self.dst_history[src] = [(d, ts) for d, ts in self.dst_history[src] if (now - ts) <= 5]
+        # Track both dst_ip and unit_id for sequential scan detection
+        self.dst_history[src].append((dst, unit_id, now))
+        self.dst_history[src] = [(d, u, ts) for d, u, ts in self.dst_history[src] if (now - ts) <= 5]
         
-        recent_dsts = {d for d, ts in self.dst_history[src]}
-        if {"192.168.100.21", "192.168.100.22", "192.168.100.23"}.issubset(recent_dsts):
+        # Check sequential scan via dst_ip (.21/.22/.23)
+        recent_dsts = {d for d, u, ts in self.dst_history[src]}
+        slave_ips = {"192.168.100.21", "192.168.100.22", "192.168.100.23"}
+        
+        # Check sequential scan via unit_id (1, 2, 3) — for traffic routed through master
+        recent_units = {u for d, u, ts in self.dst_history[src]}
+        slave_units = {1, 2, 3}
+        
+        if slave_ips.issubset(recent_dsts) or slave_units.issubset(recent_units):
             self.dst_history[src].clear()
             return Alert(
                 timestamp=pkt["timestamp"],
@@ -223,8 +234,8 @@ class RuleEngine:
                 function_code=pkt["function_code"],
                 mitre_technique="T0846",
                 mitre_name="Remote System Discovery",
-                explanation="Source sequentially scanned .21, .22, and .23 within 5 seconds.",
-                raw_packet_count=len(recent_dsts)
+                explanation="Source sequentially probed all 3 slave devices within 5 seconds.",
+                raw_packet_count=len(self.dst_history.get(src, []))
             )
         return None
 
